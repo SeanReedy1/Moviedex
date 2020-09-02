@@ -7,12 +7,13 @@ const MOVIES = require('./movies-data.json')
 
 const app = express()
 
-app.use(morgan('dev'))
+const morganSetting = process.env.NODE_ENV === 'production' ? 'tiny': 'common'
+app.use(morgan(morganSetting))
 
 app.use(cors())
 app.use(helmet())
 
-const PORT = 8000
+const PORT = process.env.port||8000
 
 app.use(function validateBearerToken(req, res, next) {
     const apiToken = process.env.API_TOKEN;
@@ -25,6 +26,16 @@ app.use(function validateBearerToken(req, res, next) {
     next();
 }
 )
+
+app.use((error, req, res, next) => {
+    let response
+    if (process.env.NODE_ENV === 'production') {
+      response = { error: { message: 'server error' }}
+    } else {
+      response = { error }
+    }
+    res.status(500).json(response)
+  })
 
 app.get('/movie', function handleGetMovies(req, res) {
     let response=MOVIES;
@@ -49,6 +60,8 @@ app.get('/movie', function handleGetMovies(req, res) {
 
     res.json(response)
 })
+
+
 
 app.listen(PORT, () => {
     console.log(`Server is listening on Port http://localhost:${PORT}`)
